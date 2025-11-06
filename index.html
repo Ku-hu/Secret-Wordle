@@ -183,7 +183,7 @@
                 <iframe 
                     id="rickroll-video" 
                     class="absolute top-0 left-0 w-full h-full" 
-                    src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1" 
+                    src="" <!-- SOURCE IS NOW EMPTY -->
                     frameborder="0" 
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
                     allowfullscreen
@@ -639,12 +639,9 @@
              document.getElementById('next-button').classList.add('hidden');
              updateView('rickroll'); 
              
-             // --- FIX: Force iframe reload to trigger autoplay when page is visible ---
+             // Set the source here to trigger immediate loading and autoplay
              const iframe = document.getElementById('rickroll-video');
-             const src = iframe.src;
-             iframe.src = ''; // Clear source
-             iframe.src = src; // Reset source to force reload and trigger autoplay
-             // ----------------------------------------------------------------------
+             iframe.src = 'https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1';
         }
 
         // NEW FUNCTION for the final transition
