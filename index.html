@@ -172,7 +172,7 @@
             <h2 class="text-4xl font-extrabold text-gray-900">YOU DID IT! (Almost)</h2>
             <p class="text-xl text-gray-600">You cracked the secret puzzle! The final word was <span class="font-black text-green-600">BABLU</span>.</p>
             <div class="text-left p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                <h3 class="text-lg font-semibold text-yellow-700 mb-2">Your Reward:</h3>
+                <h3 class="text-lg font-semibold text-yellow-700 mb-2">Your *First* Reward:</h3>
                 <p class="text-gray-700">
                     "Good job! Here's your reward"
                 </p>
@@ -195,7 +195,7 @@
             <button id="final-next-button" 
                     class="mt-6 px-8 py-3 bg-red-500 text-white font-bold rounded-lg shadow-xl hover:bg-red-600 transition duration-200 w-full"
                     onclick="goToFinalReward()">
-                Sorry, next wala pakka!
+                Sorry, next wala pakka! 🥺
             </button>
         </div>
     </div>
@@ -209,12 +209,12 @@
             
             <div class="text-left p-6 bg-white rounded-lg border border-pink-200 shadow-md">
                 <p class="text-gray-800 text-lg leading-relaxed">
-                    "Happy Birthday, Adi! You are officially two decades old! Thank you for being the most amazing person—the puzzles were just a small challenge compared to the adventure that is your life. I hope you have the best birthday, and may this next year be filled with success, happiness, and everything you've ever wanted."
+                    "Happy Birthday, Adi! You are officially two decades old! Thank you for being the most amazing person—the puzzles were just a small challenge compared to the adventure that is **your life**. I hope you have the best birthday, and may this next year be filled with success, happiness, and everything you've ever wanted."
                 </p>
                 <hr class="my-4 border-pink-100">
                 <p class="text-gray-800 text-base leading-relaxed">
-                    Haha caught me that was gemini. I cant write long messages like you but ehh. HAPPY BIRTHDAY BOOBIE!!!!!!!!! BUDDHAAAAAAA
-                    I hope you stay happy and healthy because you look really funny when you cry aaaaand yeah. happy birthday baby ♡
+                    Haha caught me that was gemini. I cant write long messages like you but ehh. **HAPPY BIRTHDAY BOOBIE!!!!!!!!! BUDDHAAAAAAA**
+                    I hope you stay happy and healthy because you look really funny when you cry and yeah happy birthday baby ♡
                 </p>
                 <p class="text-sm text-pink-400 mt-4 italic text-right">~ Your Favorite Person</p>
             </div>
@@ -649,6 +649,13 @@
 
         // NEW FUNCTION for the final transition
         window.goToFinalReward = function() {
+            // Stop the Rickroll video playback
+            const rickrollIframe = document.getElementById('rickroll-video');
+            if (rickrollIframe) {
+                // By resetting the src to an empty string, we stop the video from playing
+                rickrollIframe.src = ''; 
+            }
+
             updateView('final');
         }
 
@@ -715,4 +722,3 @@
     </script>
 </body>
 </html>
-
