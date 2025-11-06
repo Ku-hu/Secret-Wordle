@@ -181,6 +181,7 @@
             <!-- Placeholder Video Embed (Rickroll) -->
             <div class="relative w-full pb-[56.25%] rounded-lg overflow-hidden shadow-lg">
                 <iframe 
+                    id="rickroll-video" 
                     class="absolute top-0 left-0 w-full h-full" 
                     src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1" 
                     frameborder="0" 
@@ -194,7 +195,7 @@
             <button id="final-next-button" 
                     class="mt-6 px-8 py-3 bg-red-500 text-white font-bold rounded-lg shadow-xl hover:bg-red-600 transition duration-200 w-full"
                     onclick="goToFinalReward()">
-                Sorry, next wala pakka! 🥺
+                Sorry, next wala pakka!
             </button>
         </div>
     </div>
@@ -213,7 +214,7 @@
                 <hr class="my-4 border-pink-100">
                 <p class="text-gray-800 text-base leading-relaxed">
                     Haha caught me that was gemini. I cant write long messages like you but ehh. **HAPPY BIRTHDAY BOOBIE!!!!!!!!! BUDDHAAAAAAA**
-                    I hope you stay happy and healthy because you look really funny when you cry and yeah happy birthday baby ♡
+                    I hope you stay happy and healthy because you look really funny when you cry aaaaand yeah. happy birthday baby ♡
                 </p>
                 <p class="text-sm text-pink-400 mt-4 italic text-right">~ Your Favorite Person</p>
             </div>
@@ -637,6 +638,13 @@
         window.goToRickrollPage = function() {
              document.getElementById('next-button').classList.add('hidden');
              updateView('rickroll'); 
+             
+             // --- FIX: Force iframe reload to trigger autoplay when page is visible ---
+             const iframe = document.getElementById('rickroll-video');
+             const src = iframe.src;
+             iframe.src = ''; // Clear source
+             iframe.src = src; // Reset source to force reload and trigger autoplay
+             // ----------------------------------------------------------------------
         }
 
         // NEW FUNCTION for the final transition
@@ -707,5 +715,3 @@
     </script>
 </body>
 </html>
-
-
