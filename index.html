@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Ultimate Secret Puzzle</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Wordle Colors */
+            --green: #6aaa64;
+            --yellow: #c9b458;
+            --gray: #787c7e;
+            --lightgray: #d3d6da;
+            --darkgray: #3a3a3c;
+            --wordle-tile-size: 50px;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f7f7;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        .puzzle-page {
+            width: 100%;
+            max-width: 450px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        /* --- Wordle Styles --- */
+        .game-board {
+            display: grid;
+            grid-template-rows: repeat(6, 1fr);
+            grid-gap: 5px;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+        .word-row {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            grid-gap: 5px;
+            width: 100%;
+        }
+        .letter-box {
+            width: var(--wordle-tile-size);
+            height: var(--wordle-tile-size);
+            border: 2px solid var(--lightgray);
+            font-size: 2rem;
+            font-weight: bold;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-transform: uppercase;
+            user-select: none;
+            transition: background-color 0.5s ease, border-color 0.5s ease;
+            border-radius: 6px;
+        }
+        .box-correct { background-color: var(--green); border-color: var(--green); color: white; }
+        .box-present { background-color: var(--yellow); border-color: var(--yellow); color: white; }
+        .box-absent { background-color: var(--gray); border-color: var(--gray); color: white; }
+        .box-current { border-color: var(--darkgray); }
+        .keyboard-row { display: flex; justify-content: center; margin-bottom: 8px; gap: 6px; }
+        .key { padding: 8px 10px; min-width: 30px; height: 48px; background-color: var(--lightgray); color: #333; font-weight: bold; border-radius: 6px; cursor: pointer; user-select: none; transition: background-color 0.1s; display: flex; justify-content: center; align-items: center; font-size: 0.9rem; }
+        .key:active { filter: brightness(90%); }
+        .key-enter { flex-grow: 1.5; font-size: 0.8rem; padding-top: 10px;}
+        .key-delete { flex-grow: 1.5; font-size: 0.8rem; padding-top: 10px;}
+        .key-correct { background-color: var(--green) !important; color: white; }
+        .key-present { background-color: var(--yellow) !important; color: white; }
+        .key-absent { background-color: var(--darkgray) !important; color: white; }
+        
+        /* Message Box Styling */
+        #message-box {
+            position: fixed;
+            top: 10%;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 12px 24px;
+            background-color: #333;
+            color: white;
+            border-radius: 8px;
+            font-weight: bold;
+            opacity: 0;
+            transition: opacity 0.5s;
+            z-index: 100;
+        }
+        
+        /* --- CONFETTI STYLES --- */
+        .confetti-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 50;
+        }
+
+        .confetti {
+            position: absolute;
+            width: 8px;
+            height: 12px;
+            background-color: #f00; /* Default color */
+            animation: confetti-fall 3s ease-in-out forwards;
+            opacity: 0;
+        }
+
+        @keyframes confetti-fall {
+            0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+        }
+        /* End Confetti Styles */
+
+        /* Responsive adjustments */
+        @media (max-width: 480px) {
+            :root {
+                --wordle-tile-size: 40px;
+            }
+            .letter-box {
+                font-size: 1.6rem;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 antialiased">
+
+    <!-- Firestore Status Indicator (Optional but helpful) -->
+    <div id="status-bar" class="fixed top-0 left-0 w-full p-1 text-xs text-center bg-gray-200 text-gray-500">
+        Status: <span id="auth-status">Initializing...</span>
+    </div>
+
+    <!-- Wordle Game View -->
+    <div id="wordle-page" class="puzzle-page hidden">
+        <header class="w-full text-center py-4 border-b border-gray-300">
+            <h1 class="text-3xl font-extrabold text-gray-800 tracking-wider">
+                SECRET WORDLE
+            </h1>
+            <p class="text-sm text-gray-500 mt-1">Guess the final 5-letter word in 6 tries.</p>
+        </header>
+
+        <!-- Game Board Grid -->
+        <div id="game-board" class="game-board">
+            <!-- Rows will be injected by JavaScript -->
+        </div>
+
+        <!-- Virtual Keyboard -->
+        <div id="keyboard" class="w-full max-w-sm pt-4">
+            <!-- Keys will be injected by JavaScript -->
+        </div>
+        
+        <!-- Next Button - Hidden until win -->
+        <button id="next-button" 
+                class="hidden mt-6 px-8 py-3 bg-green-500 text-white font-bold rounded-lg shadow-xl hover:bg-green-600 transition duration-200"
+                onclick="goToSecretPage()">
+            NEXT: View Your Reward!
+        </button>
+    </div>
+
+    <!-- Success View -->
+    <div id="redirect-page" class="hidden w-full max-w-xl mx-auto p-8 bg-white rounded-xl shadow-2xl text-center">
+        <div class="space-y-6">
+            <svg class="w-20 h-20 text-green-500 mx-auto animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <h2 class="text-4xl font-extrabold text-gray-900">MISSION COMPLETE!</h2>
+            <p class="text-xl text-gray-600">You cracked the secret puzzle! The final word was <span class="font-black text-green-600">BABLU</span>.</p>
+            <div class="text-left p-4 bg-green-50 rounded-lg border border-green-200">
+                <h3 class="text-lg font-semibold text-green-700 mb-2">Your Special Message:</h3>
+                <p class="text-gray-700">
+                    "This message is a testament to your puzzle-solving skills and persistence. We knew you could do it! As promised, here is a video just for you."
+                </p>
+            </div>
+            
+            <!-- Placeholder Video Embed -->
+            <div class="relative w-full pb-[56.25%] rounded-lg overflow-hidden shadow-lg">
+                <iframe 
+                    class="absolute top-0 left-0 w-full h-full" 
+                    src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1" 
+                    frameborder="0" 
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                    allowfullscreen
+                    title="A fun video surprise">
+                </iframe>
+            </div>
+
+            <p class="text-sm text-gray-500 mt-4">Enjoy the reward!</p>
+        </div>
+    </div>
+
+    <!-- Message Box for alerts (replaces alert()) -->
+    <div id="message-box" role="alert"></div>
+
+    <!-- CONFETTI CONTAINER -->
+    <div id="confetti-container" class="confetti-container"></div>
+
+    <!-- Firebase Imports -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection, query, where, getDocs, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        // Expose Firebase functions to global scope for use in the main script
+        window.firebase = {
+            initializeApp, getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, 
+            getFirestore, doc, setDoc, onSnapshot, collection, query, where, getDocs, setLogLevel
+        };
+    </script>
+    
+    <script>
+        // --- START FIX FOR LOCAL DEVELOPMENT ---
+        // Mock global variables if they are not defined (which happens when run outside the Canvas environment)
+        if (typeof __app_id === 'undefined') {
+            window.__app_id = 'local-dev-puzzle';
+        }
+        if (typeof __firebase_config === 'undefined') {
+            // Provide a minimal mock config object so initializeApp doesn't fail
+            window.__firebase_config = JSON.stringify({
+                apiKey: "mock-api-key",
+                authDomain: "mock-auth-domain",
+                projectId: "mock-project-id",
+                storageBucket: "mock-storage-bucket",
+                messagingSenderId: "mock-sender-id",
+                appId: "mock-app-id"
+            });
+        }
+        if (typeof __initial_auth_token === 'undefined') {
+            window.__initial_auth_token = null; // No mock token needed for anonymous sign-in
+        }
+        // --- END FIX FOR LOCAL DEVELOPMENT ---
+
+        // Use provided global variables
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+        // Corrected variable access: now uses the global __initial_auth_token
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null; 
+
+        let db;
+        let auth;
+        let userId;
+        let gameStateRef;
+        let unsubscribe = () => {};
+
+        // --- Global Utility Functions ---
+
+        /**
+         * Displays a temporary message to the user (instead of alert()).
+         * @param {string} message 
+         * @param {number} duration 
+         */
+        function showMessage(message, duration = 1500) {
+            const messageBox = document.getElementById('message-box');
+            messageBox.textContent = message;
+            messageBox.style.opacity = '1';
+            
+            clearTimeout(messageBox.timeoutId);
+            messageBox.timeoutId = setTimeout(() => {
+                messageBox.style.opacity = '0';
+            }, duration);
+        }
+
+        // --- Firebase Initialization and State Management ---
+
+        async function initializeFirebase() {
+            try {
+                // setLogLevel('debug'); // Uncomment for debugging
+                const { initializeApp, getAuth, signInAnonymously, signInWithCustomToken, getFirestore, doc, onSnapshot } = window.firebase;
+
+                if (!firebaseConfig) {
+                    // This check is now redundant due to the mock setup above, 
+                    // but we keep it for strictness.
+                    throw new Error("Firebase config not found."); 
+                }
+
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                document.getElementById('auth-status').textContent = 'Authenticating...';
+
+                // Sign in using custom token or anonymously
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                auth.onAuthStateChanged(user => {
+                    if (user) {
+                        userId = user.uid;
+                        document.getElementById('auth-status').textContent = `User: ${userId.substring(0, 8)}... (Ready)`;
+                        setupGameListener();
+                    } else {
+                        // If running locally with mock config, this path will be taken after anonymous sign-in
+                        // The user will have a temporary UID, which is fine for local save state.
+                        userId = auth.currentUser?.uid || crypto.randomUUID();
+                        document.getElementById('auth-status').textContent = `User ID: ${userId.substring(0, 8)}... (Ready)`;
+                        setupGameListener();
+                    }
+                });
+            } catch (error) {
+                console.error("Firebase initialization failed:", error);
+                document.getElementById('auth-status').textContent = `Error: ${error.message.substring(0, 30)}...`;
+                // Crucially, if Firebase fails, we must still render the game so user can play locally.
+                renderWordleUI(true); 
+                updateView(wordleSolved);
+            }
+        }
+
+        function setupGameListener() {
+            if (unsubscribe) {
+                unsubscribe(); // Clean up previous listener if it exists
+            }
+            // Private user path for game state
+            gameStateRef = window.firebase.doc(db, 'artifacts', appId, 'users', userId, 'puzzles', 'secret-crush-puzzle');
+            
+            unsubscribe = window.firebase.onSnapshot(gameStateRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    loadGameState(docSnap.data());
+                } else {
+                    // Initialize new game state if document doesn't exist
+                    saveGameState(getInitialGameState());
+                }
+            }, (error) => {
+                console.error("Error listening to game state:", error);
+                showMessage("Error loading game state. Check console.", 5000);
+            });
+        }
+        
+        function getInitialGameState() {
+            return {
+                wordleSolved: false,
+                wordleCurrentRow: 0,
+                wordleGuesses: Array(MAX_GUESSES).fill(''),
+                lastUpdated: Date.now()
+            };
+        }
+
+        async function saveGameState(state) {
+            if (!userId || !db) {
+                // Ignore save if Firebase failed to initialize (local run mode)
+                return;
+            }
+            try {
+                const stateToSave = {
+                    wordleSolved: state.wordleSolved || false,
+                    wordleCurrentRow: state.wordleCurrentRow || 0,
+                    wordleGuesses: state.wordleGuesses || Array(MAX_GUESSES).fill(''),
+                    lastUpdated: Date.now()
+                };
+                
+                await window.firebase.setDoc(gameStateRef, stateToSave, { merge: true });
+            } catch (e) {
+                console.error("Error saving game state: ", e);
+                showMessage("Error saving progress.", 2000);
+            }
+        }
+
+        function loadGameState(state) {
+            // Wordle State
+            wordleSolved = state.wordleSolved || false;
+            currentRow = state.wordleCurrentRow || 0;
+            wordleGuesses = state.wordleGuesses || Array(MAX_GUESSES).fill('');
+
+            renderWordleUI(true); // Render Wordle from saved state
+            updateView(wordleSolved);
+            
+            // If solved on load, make sure the Next button is visible if not on the final page
+            if (wordleSolved && !document.getElementById('redirect-page').classList.contains('hidden')) {
+                 document.getElementById('next-button').classList.remove('hidden');
+            }
+        }
+
+        function updateView(wordleSolved) {
+            document.getElementById('wordle-page').classList.add('hidden');
+            document.getElementById('redirect-page').classList.add('hidden');
+            document.body.style.backgroundColor = '#f7f7f7';
+
+            if (wordleSolved) {
+                document.getElementById('redirect-page').classList.remove('hidden');
+                document.body.style.backgroundColor = '#ecfdf5';
+            } else {
+                document.getElementById('wordle-page').classList.remove('hidden');
+            }
+        }
+
+
+        // =========================================================================
+        // --- WORDLE GAME LOGIC ---
+        // =========================================================================
+
+        const TARGET_WORD = 'BABLU'; // <-- SECRET WORD
+        const WORD_LENGTH = TARGET_WORD.length;
+        const MAX_GUESSES = 6;
+        const KEYBOARD_LAYOUT = [
+            ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
+            ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
+            ['ENTER', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', 'DEL']
+        ];
+        
+        let currentRow = 0;
+        let wordleGuesses = Array(MAX_GUESSES).fill('');
+        let currentGuess = '';
+        let wordleSolved = false;
+        const keyStates = {};
+
+        function getBoxId(r, c) { return `box-${r}-${c}`; }
+        function getKeyDataKey(key) { return `.key[data-key="${key}"]`; }
+
+        function renderWordleUI(fromLoad = false) {
+            const board = document.getElementById('game-board');
+            const keyboardDiv = document.getElementById('keyboard');
+            const nextButton = document.getElementById('next-button');
+
+            if (fromLoad) {
+                // Initialize grid and keyboard structure only once
+                board.innerHTML = '';
+                for (let i = 0; i < MAX_GUESSES; i++) {
+                    const row = document.createElement('div');
+                    row.className = 'word-row';
+                    for (let j = 0; j < WORD_LENGTH; j++) {
+                        const box = document.createElement('div');
+                        box.className = 'letter-box';
+                        box.id = getBoxId(i, j);
+                        row.appendChild(box);
+                    }
+                    board.appendChild(row);
+                }
+
+                keyboardDiv.innerHTML = '';
+                KEYBOARD_LAYOUT.forEach(rowKeys => {
+                    const rowDiv = document.createElement('div');
+                    rowDiv.className = 'keyboard-row';
+                    rowKeys.forEach(keyText => {
+                        const key = document.createElement('div');
+                        key.textContent = keyText.length === 1 ? keyText : keyText === 'DEL' ? '⌫' : keyText;
+                        key.className = `key ${keyText.toLowerCase()} select-none`;
+                        key.setAttribute('data-key', keyText);
+                        
+                        if (keyText === 'ENTER') {
+                            key.classList.add('key-enter', 'bg-blue-500', 'text-white', 'hover:bg-blue-600');
+                        } else if (keyText === 'DEL') {
+                            key.classList.add('key-delete', 'bg-gray-300', 'hover:bg-gray-400');
+                        } else {
+                            key.classList.add('bg-gray-300', 'hover:bg-gray-400');
+                            keyStates[keyText] = 'default';
+                        }
+                        key.addEventListener('click', () => handleInput(keyText));
+                        rowDiv.appendChild(key);
+                    });
+                    keyboardDiv.appendChild(rowDiv);
+                });
+            }
+
+            // Apply saved state to the grid and keyboard
+            wordleGuesses.forEach((guess, r) => {
+                if (guess.length > 0) {
+                    const results = evaluateGuess(guess, TARGET_WORD);
+                    for (let c = 0; c < WORD_LENGTH; c++) {
+                        const box = document.getElementById(getBoxId(r, c));
+                        const state = results[c];
+                        box.textContent = guess[c];
+                        box.className = `letter-box box-${state}`;
+                        updateKeyState(guess[c], state, true);
+                    }
+                }
+            });
+
+            // Set current row for input
+            if (!wordleSolved && currentRow < MAX_GUESSES) {
+                currentGuess = wordleGuesses[currentRow];
+                for (let c = 0; c < WORD_LENGTH; c++) {
+                    const box = document.getElementById(getBoxId(currentRow, c));
+                    if (box) box.classList.add('box-current');
+                }
+                nextButton.classList.add('hidden'); // Hide the button if game is ongoing
+            } else if (wordleSolved) {
+                 nextButton.classList.remove('hidden'); // Show button if solved
+            }
+        }
+
+        function updateKeyState(letter, state, initialLoad = false) {
+            const keyElement = document.querySelector(getKeyDataKey(letter));
+            if (keyElement) {
+                const statesOrder = { 'default': 0, 'absent': 1, 'present': 2, 'correct': 3 };
+                
+                // Only update if the new state is 'better' or if it's the initial load
+                if (initialLoad || statesOrder[state] > statesOrder[keyStates[letter]]) {
+                    if (keyStates[letter] && keyStates[letter] !== 'default') {
+                        keyElement.classList.remove(`key-${keyStates[letter]}`);
+                    }
+                    keyElement.classList.add(`key-${state}`);
+                    keyStates[letter] = state;
+                }
+            }
+        }
+
+        function evaluateGuess(guess, target) {
+            const results = Array(WORD_LENGTH).fill('absent');
+            let targetLetters = target.split('');
+
+            // 1. Identify Green (Correct)
+            for (let i = 0; i < WORD_LENGTH; i++) {
+                if (guess[i] === target[i]) {
+                    results[i] = 'correct';
+                    targetLetters[i] = null;
+                }
+            }
+
+            // 2. Identify Yellow (Present) and Gray (Absent)
+            for (let i = 0; i < WORD_LENGTH; i++) {
+                if (results[i] !== 'correct') {
+                    const letterIndex = targetLetters.indexOf(guess[i]);
+                    if (letterIndex > -1) {
+                        results[i] = 'present';
+                        targetLetters[letterIndex] = null;
+                    } else {
+                        results[i] = 'absent';
+                    }
+                }
+            }
+            return results;
+        }
+
+        function handleInput(key) {
+            if (wordleSolved) return; 
+
+            const keyUpper = key.toUpperCase();
+
+            if (keyUpper === 'ENTER') {
+                submitWordleGuess();
+            } else if (keyUpper === 'BACKSPACE' || keyUpper === 'DEL') {
+                deleteLetterWordle();
+            } else if (keyUpper.length === 1 && keyUpper >= 'A' && keyUpper <= 'Z') {
+                addLetterWordle(keyUpper);
+            }
+        }
+
+        function addLetterWordle(letter) {
+            if (currentGuess.length < WORD_LENGTH && currentRow < MAX_GUESSES) {
+                const oldLength = currentGuess.length;
+                currentGuess += letter;
+                const box = document.getElementById(getBoxId(currentRow, oldLength));
+                if (box) {
+                    box.textContent = letter;
+                    box.classList.add('box-current');
+                }
+            }
+        }
+
+        function deleteLetterWordle() {
+            if (currentGuess.length > 0 && currentRow < MAX_GUESSES) {
+                const box = document.getElementById(getBoxId(currentRow, currentGuess.length - 1));
+                if (box) {
+                    box.textContent = '';
+                    box.classList.remove('box-current');
+                }
+                currentGuess = currentGuess.slice(0, -1);
+            }
+        }
+        
+        // --- Confetti Logic ---
+
+        const CONFETTI_COLORS = ['#f00', '#0f0', '#00f', '#ff0', '#0ff', '#f0f', '#fff', '#ffa07a'];
+        const confettiContainer = document.getElementById('confetti-container');
+
+        function createConfettiPiece() {
+            const piece = document.createElement('div');
+            piece.className = 'confetti';
+            piece.style.left = `${Math.random() * 100}vw`;
+            piece.style.backgroundColor = CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)];
+            piece.style.animationDuration = `${Math.random() * 1.5 + 2}s`; // 2s to 3.5s
+            piece.style.animationDelay = `${Math.random() * 0.5}s`;
+            piece.style.transform = `rotate(${Math.random() * 360}deg)`;
+            piece.style.width = `${Math.random() * 6 + 4}px`; // 4px to 10px
+            piece.style.height = `${Math.random() * 10 + 8}px`; // 8px to 18px
+            piece.style.borderRadius = `${Math.random() > 0.5 ? '50%' : '2px'}`;
+            return piece;
+        }
+
+        function startConfetti() {
+            // Clear any existing confetti
+            confettiContainer.innerHTML = ''; 
+            
+            // Create a burst of confetti
+            for (let i = 0; i < 150; i++) { // Increased confetti count for more impact
+                confettiContainer.appendChild(createConfettiPiece());
+            }
+
+            // Clean up the pieces after the animation finishes
+            setTimeout(() => {
+                confettiContainer.innerHTML = '';
+            }, 4000);
+        }
+
+        window.goToSecretPage = function() {
+             // This is called when the "Next" button is clicked
+             document.getElementById('next-button').classList.add('hidden');
+             updateView(true); // Transition to the success page
+        }
+
+        function submitWordleGuess() {
+            if (currentGuess.length !== WORD_LENGTH) {
+                showMessage("Not enough letters.");
+                return;
+            }
+
+            // NOTE: For a real Wordle clone, you'd check if the word is valid here.
+            
+            const guess = currentGuess;
+            const results = evaluateGuess(guess, TARGET_WORD);
+            
+            // Apply styles and update keyboard
+            for (let i = 0; i < WORD_LENGTH; i++) {
+                const box = document.getElementById(getBoxId(currentRow, i));
+                const state = results[i];
+                box.classList.remove('box-current');
+                box.classList.add(`box-${state}`);
+                updateKeyState(guess[i], state);
+            }
+
+            wordleGuesses[currentRow] = guess;
+            const isWin = (guess === TARGET_WORD);
+
+            if (isWin) {
+                showMessage("Solved! Congratulations!", 3000);
+                wordleSolved = true;
+                saveGameState({ wordleSolved: true });
+                
+                // 1. Start Confetti
+                startConfetti();
+                
+                // 2. Show the Next button
+                document.getElementById('next-button').classList.remove('hidden');
+
+            } else {
+                currentRow++;
+                currentGuess = '';
+                
+                if (currentRow === MAX_GUESSES) {
+                    showMessage(`Game Over! The word was ${TARGET_WORD}`, 3000);
+                    // Game is lost but state is saved
+                } else {
+                    // Update current row box styles for new guess
+                    for (let c = 0; c < WORD_LENGTH; c++) {
+                        const box = document.getElementById(getBoxId(currentRow, c));
+                        if (box) box.classList.add('box-current');
+                    }
+                }
+                saveGameState({ wordleCurrentRow: currentRow, wordleGuesses: wordleGuesses });
+            }
+        }
+
+        // --- Initialization ---
+
+        window.onload = function() {
+            initializeFirebase();
+            
+            // Listen for physical keyboard input
+            document.addEventListener('keydown', (event) => {
+                const key = event.key.toUpperCase();
+                if (event.key === ' ') {
+                    event.preventDefault();
+                }
+                handleInput(key);
+            });
+        };
+
+    </script>
+</body>
+</html>
